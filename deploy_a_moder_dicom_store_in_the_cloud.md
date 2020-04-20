@@ -1,0 +1,18 @@
+Deploy a modern, DICOM medical image store in the cloud
+
+## Introduction
+
+In this post, we will deploy the open source DICOM server [Orthanc](https://osimis.io) to the AWS cloud to provide a secure, Internet-accessible image store.  This deployment will emphasise security, stability, and durability, over absolute performance or minimal cost.  The architecture is considered 'modern' as it employs the REST-based DICOMWeb transport, is deployed as containerised applications, and runs on a serverless platform.
+
+An example scenario for this deployment is a research imaging study, where this installation provides a central repository for DICOM images.  The architecture is designed to make use of AWS services to provide a highly available and scalable solution.  Features such as access control, logging of all actions, continuous backup and archive, and end-to-end encryption of data in transit and at rest, are easily enabled.  In addition to being good practices, these features may make this solution eligible for use in a regulatory-controlled environment.
+
+DICOMWeb is a recent alternative to the legacy DICOM DIMSE services traditionally employed to transport DICOM images. DIMSE services (such as C-STORE and C-MOVE) are not well-suited to Internet-facing deployments due to the lack of access control and the difficulty in implementing encryption.  Additionally, DICOM DIMSE transport uses its own port numbers which are frequently blocked by firewalls, and requires that both parties to a transfer have a unique, accessible IP address, precluding its use by any system behind an Internet NAT device.
+
+## Design
+
+The solution architecture is a standard, three-tier web application, with the [NGINX](https://www.nginx.com) web server providing the presentation tier, Orthanc the application tier, and [Amazon Aurora Serverless](https://aws.amazon.com/rds/aurora/serverless) the data tier.  Both the web and application tier are implemented on [AWS Fargate](https://aws.amazon.com/fargate), the serverless variant of [Amazon Elastic Container Service (ECS)](https://aws.amazon.com/ecs).  AWS Fargate allows you to run standard Docker containers without having to set up or manage the underlying server instances.  In both tiers, a cluster of Fargate container instances live behind an [Elastic Load Balancer](https://aws.amazon.com/elasticloadbalancing), providing a highly available service that automatically and independently scales in response to the load on that tier.  Amazon Aurora Serverless a fully-managed, highly-available and auto-scaling database service, providing (in this instance) a standard PostgreSQL endpoint requiring no management of underlying infrastructure.
+
+Implementing the supplemental features of access control, logging and management, encryption of all data in transit and at rest, and backup and archive, are simplified through the use of AWS services integrated into or compatible with the compute and database services.  [AWS Certificate Manager](https://aws.amazon.com/certificate-manager)  provides SSL/TLS certificates for both the internet-facing and internal load balancers.  [AWS CloudTrail](https://aws.amazon.com/cloudtrail) enables governance and compliance monitoring by logging all activity related to the AWS infrastructure, and integrates with [Amazon CloudWatch](https://aws.amazon.com/cloudwatch) for monitoring and observability into the system.  Incremental and full backups of the Aurora databases are stored in [Amazon S3](https://aws.amazon.com/s3) for extreme durability, with automatically encrypted data storage and communications.
+
+## Implementation
+
